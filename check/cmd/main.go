@@ -19,6 +19,10 @@ func main() {
 		common.Fatal("reading request from stdin", err)
 	}
 
+	if request.Source.TriggerMessage == "" {
+		request.Source.TriggerMessage = "[trigger ci]"
+	}
+
 	api := gitlab.NewClient(common.GetDefaultClient(request.Source.Insecure), request.Source.PrivateToken)
 	api.SetBaseURL(request.Source.GetBaseURL())
 
@@ -55,7 +59,7 @@ func main() {
 
 		if !request.Source.SkipTriggerComment {
 			notes, _, _ := api.Notes.ListMergeRequestNotes(mr.ProjectID, mr.IID, &gitlab.ListMergeRequestNotesOptions{})
-			updatedAt = getMostRecentUpdateTime(notes, updatedAt)
+			updatedAt = getMostRecentUpdateTime(notes, updatedAt, request.Source.TriggerMessage)
 		}
 
 		if request.Source.SkipNotMergeable && mr.MergeStatus != "can_be_merged" {
@@ -89,9 +93,9 @@ func main() {
 
 }
 
-func getMostRecentUpdateTime(notes []*gitlab.Note, updatedAt *time.Time) *time.Time {
+func getMostRecentUpdateTime(notes []*gitlab.Note, updatedAt *time.Time, triggerMessage string) *time.Time {
 	for _, note := range notes {
-		if strings.Contains(note.Body, "[trigger ci]") && updatedAt.Before(*note.UpdatedAt) {
+		if strings.Contains(note.Body, triggerMessage) && updatedAt.Before(*note.UpdatedAt) {
 			return note.UpdatedAt
 		}
 	}
