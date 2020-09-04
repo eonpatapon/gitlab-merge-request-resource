@@ -46,8 +46,13 @@ func main() {
 
 	for _, mr := range requests {
 
+		var updatedAt *time.Time
+
 		commit, _, err := api.Commits.GetCommit(mr.ProjectID, mr.SHA)
-		updatedAt := commit.CommittedDate
+
+		if !request.Source.SkipCommitPush {
+			updatedAt = commit.CommittedDate
+		}
 
 		if err != nil {
 			continue
@@ -67,6 +72,10 @@ func main() {
 		}
 
 		if request.Source.SkipWorkInProgress && mr.WorkInProgress {
+			continue
+		}
+
+		if updatedAt == nil {
 			continue
 		}
 
@@ -95,7 +104,7 @@ func main() {
 
 func getMostRecentUpdateTime(notes []*gitlab.Note, updatedAt *time.Time, triggerMessage string) *time.Time {
 	for _, note := range notes {
-		if strings.Contains(note.Body, triggerMessage) && updatedAt.Before(*note.UpdatedAt) {
+		if strings.Contains(note.Body, triggerMessage) && (updatedAt == nil || updatedAt.Before(*note.UpdatedAt)) {
 			return note.UpdatedAt
 		}
 	}
