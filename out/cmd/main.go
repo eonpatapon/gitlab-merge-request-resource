@@ -103,6 +103,23 @@ func main() {
 		}
 	}
 
+	if request.Params.Action != "" && request.Params.Action == "merge" {
+		removeSourceBranch := true
+		mergeWhenPipelineSucceeds := true
+		options := gitlab.AcceptMergeRequestOptions{
+			ShouldRemoveSourceBranch:  &removeSourceBranch,
+			MergeWhenPipelineSucceeds: &mergeWhenPipelineSucceeds,
+		}
+		_, res, err := api.MergeRequests.AcceptMergeRequest(mr.ProjectID, mr.IID, &options)
+		if res.StatusCode != 200 {
+			body, _ := ioutil.ReadAll(res.Body)
+			log.Fatalf("Update merge request failed: %d, response %s", res.StatusCode, string(body))
+		}
+		if err != nil {
+			common.Fatal("Update merge request failed", err)
+		}
+	}
+
 	response := out.Response{
 		Version: resource.Version{
 			ID:        mr.IID,

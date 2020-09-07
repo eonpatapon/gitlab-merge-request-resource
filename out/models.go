@@ -23,6 +23,7 @@ type Params struct {
 	Status     string   `json:"status"`
 	Labels     []string `json:"labels"`
 	Comment    Comment  `json:"comment"`
+	Action     string   `json:"action"`
 }
 
 type Comment struct {
