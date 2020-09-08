@@ -87,7 +87,7 @@ func main() {
 		}
 	}
 
-	commentBody := request.Params.Comment.GetContent(os.Args[1])
+	commentBody := request.Params.Comment.GetContent(os.Args[1], request)
 	if commentBody != "" {
 		message = message + fmt.Sprintf("New comment: %s \n", commentBody)
 		options := gitlab.CreateMergeRequestNoteOptions{

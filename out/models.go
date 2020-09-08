@@ -1,11 +1,13 @@
 package out
 
 import (
-	"github.com/samcontesse/gitlab-merge-request-resource"
-	"github.com/samcontesse/gitlab-merge-request-resource/common"
 	"io/ioutil"
+	"os"
 	"path"
 	"strings"
+
+	resource "github.com/samcontesse/gitlab-merge-request-resource"
+	"github.com/samcontesse/gitlab-merge-request-resource/common"
 )
 
 type Request struct {
@@ -32,10 +34,18 @@ type Comment struct {
 }
 
 // Generate comment content
-func (comment Comment) GetContent(basePath string) string {
+func (comment Comment) GetContent(basePath string, request Request) string {
 	var (
 		commentContent string
 		fileContent    string
+		buildTokens    = map[string]string{
+			"${BUILD_URL}":           request.Source.GetTargetURL(),
+			"${BUILD_ID}":            os.Getenv("BUILD_ID"),
+			"${BUILD_NAME}":          os.Getenv("BUILD_NAME"),
+			"${BUILD_JOB_NAME}":      os.Getenv("BUILD_JOB_NAME"),
+			"${BUILD_PIPELINE_NAME}": request.Source.GetPipelineName(),
+			"${ATC_EXTERNAL_URL}":    request.Source.GetCoucourseUrl(),
+		}
 	)
 	if comment.FilePath != "" {
 		filePath := path.Join(basePath, comment.FilePath)
@@ -53,5 +63,12 @@ func (comment Comment) GetContent(basePath string) string {
 		commentContent = strings.Replace(commentRaw, "$FILE_CONTENT", fileContent, -1)
 	}
 
-	return commentContent
+	replaceTokens := func(sourceString string) string {
+		for k, v := range buildTokens {
+			sourceString = strings.Replace(sourceString, k, v, -1)
+		}
+		return sourceString
+	}
+
+	return replaceTokens(commentContent)
 }
