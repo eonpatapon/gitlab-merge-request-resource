@@ -104,7 +104,7 @@ func main() {
 
 func getMostRecentUpdateTime(notes []*gitlab.Note, updatedAt *time.Time, triggerMessage string) *time.Time {
 	for _, note := range notes {
-		if strings.Contains(note.Body, triggerMessage) && (updatedAt == nil || updatedAt.Before(*note.UpdatedAt)) {
+		if note.Body == triggerMessage && (updatedAt == nil || updatedAt.Before(*note.UpdatedAt)) {
 			return note.UpdatedAt
 		}
 	}
