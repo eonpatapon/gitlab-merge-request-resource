@@ -21,11 +21,12 @@ type Response struct {
 }
 
 type Params struct {
-	Repository string   `json:"repository"`
-	Status     string   `json:"status"`
-	Labels     []string `json:"labels"`
-	Comment    Comment  `json:"comment"`
-	Action     string   `json:"action"`
+	Repository   string   `json:"repository"`
+	Status       string   `json:"status"`
+	AddLabels    []string `json:"add_labels"`
+	RemoveLabels []string `json:"remove_labels"`
+	Comment      Comment  `json:"comment"`
+	Action       string   `json:"action"`
 }
 
 type Comment struct {

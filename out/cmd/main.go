@@ -65,28 +65,6 @@ func main() {
 		}
 	}
 
-	if request.Params.Labels != nil {
-		message = message + fmt.Sprintf("Set Labels: %s \n", request.Params.Labels)
-		// Make sure `Labels` is present in that merge request
-		currentLabels := mr.Labels
-		for _, newLabel := range request.Params.Labels {
-			if !Contains(currentLabels, newLabel) {
-				currentLabels = append(currentLabels, newLabel)
-			}
-		}
-		options := gitlab.UpdateMergeRequestOptions{
-			Labels: &currentLabels,
-		}
-		_, res, err := api.MergeRequests.UpdateMergeRequest(mr.ProjectID, mr.IID, &options)
-		if res.StatusCode != 200 {
-			body, _ := ioutil.ReadAll(res.Body)
-			log.Fatalf("Update merge request failed: %d, response %s", res.StatusCode, string(body))
-		}
-		if err != nil {
-			common.Fatal("Update merge request failed", err)
-		}
-	}
-
 	commentBody := request.Params.Comment.GetContent(os.Args[1], request)
 	if commentBody != "" {
 		message = message + fmt.Sprintf("New comment: %s \n", commentBody)
@@ -100,6 +78,57 @@ func main() {
 		}
 		if err != nil {
 			common.Fatal("Add merge request comment failed", err)
+		}
+	}
+
+	if request.Params.RemoveLabels != nil || request.Params.AddLabels != nil {
+		// Refresh MR to get latest labels
+		refreshedMR, res, err := api.MergeRequests.GetMergeRequest(mr.ProjectID, mr.IID, &gitlab.GetMergeRequestsOptions{})
+		if res.StatusCode != 200 {
+			body, _ := ioutil.ReadAll(res.Body)
+			log.Fatalf("Failed to refresh MR: %d, response %s", res.StatusCode, string(body))
+		}
+		if err != nil {
+			common.Fatal("Failed to refresh MR", err)
+		}
+		mr = *refreshedMR
+
+		currentLabels := mr.Labels
+		newLabels := mr.Labels
+
+		message = message + fmt.Sprintf("Current Labels: %s \n", currentLabels)
+
+		if request.Params.RemoveLabels != nil {
+			for _, rmLabel := range request.Params.RemoveLabels {
+				for idx, currentLabel := range currentLabels {
+					if rmLabel == currentLabel {
+						newLabels = append(newLabels[:idx], newLabels[idx+1:]...)
+						break
+					}
+				}
+			}
+		}
+
+		if request.Params.AddLabels != nil {
+			for _, newLabel := range request.Params.AddLabels {
+				if !Contains(newLabels, newLabel) {
+					newLabels = append(newLabels, newLabel)
+				}
+			}
+		}
+
+		message = message + fmt.Sprintf("New Labels: %s \n", newLabels)
+
+		options := gitlab.UpdateMergeRequestOptions{
+			Labels: &newLabels,
+		}
+		_, res, err = api.MergeRequests.UpdateMergeRequest(mr.ProjectID, mr.IID, &options)
+		if res.StatusCode != 200 {
+			body, _ := ioutil.ReadAll(res.Body)
+			log.Fatalf("Update merge request failed: %d, response %s", res.StatusCode, string(body))
+		}
+		if err != nil {
+			common.Fatal("Update merge request failed", err)
 		}
 	}
 
